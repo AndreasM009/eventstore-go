@@ -1,11 +1,11 @@
 package tablestorage
 
 import (
-	"andreasm009/go/eventstore/store"
 	"errors"
 	"fmt"
 	"strconv"
 
+	"github.com/AndreasM009/eventstore-go/store"
 	"github.com/Azure/azure-sdk-for-go/storage"
 )
 

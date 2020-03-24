@@ -1,9 +1,10 @@
 package tablestorage
 
 import (
-	"andreasm009/go/eventstore/store"
 	"flag"
 	"testing"
+
+	"github.com/AndreasM009/evenststore-go/store"
 
 	"github.com/stretchr/testify/assert"
 )
