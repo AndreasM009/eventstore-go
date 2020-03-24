@@ -1,2 +1,5 @@
 # eventstore-go
-Eventstore implmented in go and Azure Table Storage
+A simple Eventstore to store object change history.
+
+Supported storage:
+- Azure Tabkle Storage
