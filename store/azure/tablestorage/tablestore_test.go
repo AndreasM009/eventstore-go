@@ -19,12 +19,14 @@ func init() {
 	storageAccountKeyFlag = flag.String("storageaccountkey", "", "key of storage account to use")
 }
 
-func destroyTestData(s *tablestore) {
+func destroyTestData(t *testing.T, s *tablestore) {
 	tsvc := s.client.GetTableService()
 	vtbl := tsvc.GetTableReference(s.entityVersionTableName)
-	vtbl.Delete(30, nil)
+	err := vtbl.Delete(30, nil)
+	assert.Nil(t, err)
 	etbl := tsvc.GetTableReference(s.entityTableName)
-	etbl.Delete(30, nil)
+	err = etbl.Delete(30, nil)
+	assert.Nil(t, err)
 }
 
 func TestInit(t *testing.T) {
@@ -40,7 +42,7 @@ func TestInit(t *testing.T) {
 	s = NewStore(storageAccounName, storageAccountKey, "t1")
 	err = s.Init()
 	assert.Nil(t, err)
-	destroyTestData(s.(*tablestore))
+	destroyTestData(t, s.(*tablestore))
 }
 
 func TestAddEntity(t *testing.T) {
@@ -48,7 +50,7 @@ func TestAddEntity(t *testing.T) {
 	err := s.Init()
 	assert.Nil(t, err)
 
-	defer destroyTestData(s.(*tablestore))
+	defer destroyTestData(t, s.(*tablestore))
 
 	ety := &store.Entity{
 		ID:   "1234",
@@ -61,8 +63,9 @@ func TestAddEntity(t *testing.T) {
 	assert.NotNil(t, ety2)
 	assert.Equal(t, int64(1), ety2.Version)
 
-	_, err = s.Add(ety2)
+	e, err := s.Add(ety2)
 	assert.NotNil(t, err)
+	assert.Nil(t, e)
 }
 
 func TestAppend(t *testing.T) {
@@ -70,7 +73,7 @@ func TestAppend(t *testing.T) {
 	err := s.Init()
 	assert.Nil(t, err)
 
-	defer destroyTestData(s.(*tablestore))
+	defer destroyTestData(t, s.(*tablestore))
 
 	ety := &store.Entity{
 		ID:   "1234",
@@ -96,7 +99,7 @@ func TestAppendOldVersion(t *testing.T) {
 	err := s.Init()
 	assert.Nil(t, err)
 
-	defer destroyTestData(s.(*tablestore))
+	defer destroyTestData(t, s.(*tablestore))
 
 	ety := &store.Entity{
 		ID:   "1234",
@@ -132,7 +135,7 @@ func TestGetLatestVersionNumber(t *testing.T) {
 	err := s.Init()
 	assert.Nil(t, err)
 
-	defer destroyTestData(s.(*tablestore))
+	defer destroyTestData(t, s.(*tablestore))
 
 	ety := &store.Entity{
 		ID:   "1234",
@@ -162,7 +165,7 @@ func TestGetLatestVersionNumberMissingEntity(t *testing.T) {
 	err := s.Init()
 	assert.Nil(t, err)
 
-	defer destroyTestData(s.(*tablestore))
+	defer destroyTestData(t, s.(*tablestore))
 
 	version, err := s.GetLatestVersionNumber("1234")
 	assert.NotNil(t, err)
@@ -174,7 +177,7 @@ func TestGetByVersion(t *testing.T) {
 	err := s.Init()
 	assert.Nil(t, err)
 
-	defer destroyTestData(s.(*tablestore))
+	defer destroyTestData(t, s.(*tablestore))
 
 	ety := &store.Entity{
 		ID:   "1234",

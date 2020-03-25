@@ -9,7 +9,8 @@ import (
 
 func TestAdd(t *testing.T) {
 	s := NewStore()
-	s.Init()
+	err := s.Init()
+	assert.Nil(t, err)
 
 	ety := &store.Entity{
 		ID:      "1",
@@ -30,7 +31,8 @@ func TestAdd(t *testing.T) {
 
 func TestAppend(t *testing.T) {
 	s := NewStore()
-	s.Init()
+	err := s.Init()
+	assert.Nil(t, err)
 
 	ety := &store.Entity{
 		ID:      "1",
@@ -60,7 +62,8 @@ func TestAppend(t *testing.T) {
 
 func TestAppendMissingEntity(t *testing.T) {
 	s := NewStore()
-	s.Init()
+	err := s.Init()
+	assert.Nil(t, err)
 
 	ety := &store.Entity{
 		ID:      "1",
@@ -76,7 +79,8 @@ func TestAppendMissingEntity(t *testing.T) {
 
 func TestGetVersionNumber(t *testing.T) {
 	s := NewStore()
-	s.Init()
+	err := s.Init()
+	assert.Nil(t, err)
 
 	ety := &store.Entity{
 		ID:      "1",
@@ -84,14 +88,18 @@ func TestGetVersionNumber(t *testing.T) {
 		Data:    "Hello World",
 	}
 
-	_, err := s.Add(ety)
+	e, err := s.Add(ety)
+	assert.Nil(t, err)
+	assert.NotNil(t, e)
 
 	version, err := s.GetLatestVersionNumber(ety.ID)
 	assert.Nil(t, err)
 	assert.Equal(t, int64(1), version)
 
 	ety.Data = "Hello World!"
-	_, err = s.Append(ety)
+	e, err = s.Append(ety)
+	assert.Nil(t, err)
+	assert.NotNil(t, e)
 
 	version, err = s.GetLatestVersionNumber(ety.ID)
 	assert.Nil(t, err)
@@ -100,7 +108,8 @@ func TestGetVersionNumber(t *testing.T) {
 
 func TestGetVersionNumberMissingEntity(t *testing.T) {
 	s := NewStore()
-	s.Init()
+	err := s.Init()
+	assert.Nil(t, err)
 
 	ety := &store.Entity{
 		ID:      "1",
@@ -116,7 +125,8 @@ func TestGetVersionNumberMissingEntity(t *testing.T) {
 
 func TestGetByVersion(t *testing.T) {
 	s := NewStore()
-	s.Init()
+	err := s.Init()
+	assert.Nil(t, err)
 
 	ety := &store.Entity{
 		ID:      "1",
@@ -124,7 +134,9 @@ func TestGetByVersion(t *testing.T) {
 		Data:    "Hello World",
 	}
 
-	_, _ = s.Add(ety)
+	e, err := s.Add(ety)
+	assert.Nil(t, err)
+	assert.NotNil(t, e)
 
 	res, err := s.GetByVersion(ety.ID, ety.Version)
 
@@ -140,7 +152,9 @@ func TestGetByVersion(t *testing.T) {
 		Data:    "Hello World!",
 	}
 
-	_, _ = s.Append(ety2)
+	e, err = s.Append(ety2)
+	assert.Nil(t, err)
+	assert.NotNil(t, e)
 
 	res, err = s.GetByVersion(ety2.ID, 1)
 	assert.Nil(t, err)
@@ -155,7 +169,8 @@ func TestGetByVersion(t *testing.T) {
 
 func TestGetByVerisonMissingEntity(t *testing.T) {
 	s := NewStore()
-	s.Init()
+	err := s.Init()
+	assert.Nil(t, err)
 
 	res, err := s.GetByVersion("1", 1)
 	assert.NotNil(t, err)
@@ -164,7 +179,8 @@ func TestGetByVerisonMissingEntity(t *testing.T) {
 
 func TestGetByVersionMissingVersion(t *testing.T) {
 	s := NewStore()
-	s.Init()
+	err := s.Init()
+	assert.Nil(t, err)
 
 	ety := &store.Entity{
 		ID:      "1",

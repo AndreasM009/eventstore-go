@@ -22,12 +22,6 @@ type (
 		entityTableName        string
 		entityVersionTableName string
 	}
-
-	tableentity struct {
-		ID      string
-		Version int64
-		Data    []byte
-	}
 )
 
 // NewStore creates a new Azure Table Storage based event store
