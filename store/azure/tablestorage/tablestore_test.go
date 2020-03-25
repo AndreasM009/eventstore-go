@@ -52,7 +52,7 @@ func TestAddEntity(t *testing.T) {
 
 	ety := &store.Entity{
 		ID:   "1234",
-		Data: []byte("Hello Wolrd"),
+		Data: "Hello Wolrd",
 	}
 
 	ety2, err := s.Add(ety)
@@ -74,7 +74,7 @@ func TestAppend(t *testing.T) {
 
 	ety := &store.Entity{
 		ID:   "1234",
-		Data: []byte("Hello Wolrd"),
+		Data: "Hello Wolrd",
 	}
 
 	ety2, err := s.Add(ety)
@@ -83,7 +83,7 @@ func TestAppend(t *testing.T) {
 	assert.NotNil(t, ety2)
 	assert.Equal(t, int64(1), ety2.Version)
 
-	ety2.Data = []byte("Hello EventStore")
+	ety2.Data = "Hello EventStore"
 
 	ety3, err := s.Append(ety2)
 	assert.Nil(t, err)
@@ -100,7 +100,7 @@ func TestAppendOldVersion(t *testing.T) {
 
 	ety := &store.Entity{
 		ID:   "1234",
-		Data: []byte("Hello Wolrd"),
+		Data: "Hello Wolrd",
 	}
 
 	ety, err = s.Add(ety)
@@ -109,7 +109,7 @@ func TestAppendOldVersion(t *testing.T) {
 	assert.NotNil(t, ety)
 	assert.Equal(t, int64(1), ety.Version)
 
-	ety.Data = []byte("Hello EventStore")
+	ety.Data = "Hello EventStore"
 
 	ety, err = s.Append(ety)
 	assert.Nil(t, err)
@@ -118,7 +118,7 @@ func TestAppendOldVersion(t *testing.T) {
 
 	etyOld := &store.Entity{
 		ID:      "1234",
-		Data:    []byte("Hello"),
+		Data:    "Hello",
 		Version: 1,
 	}
 
@@ -136,7 +136,7 @@ func TestGetLatestVersionNumber(t *testing.T) {
 
 	ety := &store.Entity{
 		ID:   "1234",
-		Data: []byte("Hello Wolrd"),
+		Data: "Hello Wolrd",
 	}
 
 	ety, err = s.Add(ety)
@@ -145,7 +145,7 @@ func TestGetLatestVersionNumber(t *testing.T) {
 	assert.NotNil(t, ety)
 	assert.Equal(t, int64(1), ety.Version)
 
-	ety.Data = []byte("Hello EventStore")
+	ety.Data = "Hello EventStore"
 
 	ety, err = s.Append(ety)
 	assert.Nil(t, err)
@@ -178,7 +178,7 @@ func TestGetByVersion(t *testing.T) {
 
 	ety := &store.Entity{
 		ID:   "1234",
-		Data: []byte("Hello World"),
+		Data: "Hello World",
 	}
 
 	ety, err = s.Add(ety)
@@ -190,9 +190,9 @@ func TestGetByVersion(t *testing.T) {
 	res, err := s.GetByVersion("1234", 1)
 	assert.Nil(t, err)
 	assert.NotNil(t, res)
-	assert.Equal(t, "Hello World", string(res.Data))
+	assert.Equal(t, "Hello World", res.Data.(string))
 
-	ety.Data = []byte("Hello EventStore")
+	ety.Data = "Hello EventStore"
 
 	ety, err = s.Append(ety)
 	assert.Nil(t, err)
@@ -202,5 +202,5 @@ func TestGetByVersion(t *testing.T) {
 	res, err = s.GetByVersion("1234", 2)
 	assert.Nil(t, err)
 	assert.NotNil(t, res)
-	assert.Equal(t, "Hello EventStore", string(res.Data))
+	assert.Equal(t, "Hello EventStore", res.Data.(string))
 }

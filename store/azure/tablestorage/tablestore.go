@@ -1,9 +1,9 @@
 package tablestorage
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
-	"strconv"
 
 	"github.com/AndreasM009/eventstore-go/store"
 	"github.com/Azure/azure-sdk-for-go/storage"
@@ -21,6 +21,12 @@ type (
 		client                 storage.Client
 		entityTableName        string
 		entityVersionTableName string
+	}
+
+	tableentity struct {
+		ID      string
+		Version int64
+		Data    []byte
 	}
 )
 
@@ -70,7 +76,11 @@ func (s *tablestore) Add(entity *store.Entity) (*store.Entity, error) {
 	vety := s.makeVersionTableEntity(vtbl, entity)
 
 	etbl := s.getEntityTable()
-	eety := s.makeEntityTableEntity(etbl, entity)
+	eety, err := s.makeEntityTableEntity(etbl, entity)
+
+	if err != nil {
+		return nil, err
+	}
 
 	if err := vety.Insert(storage.EmptyPayload, nil); err != nil {
 		return nil, err
@@ -103,7 +113,7 @@ func (s *tablestore) Append(entity *store.Entity) (*store.Entity, error) {
 	if entity.Version != version {
 		// there is a newer version already stored, as we do OOL (Optimistic Offline Lock)
 		// we return an error here
-		return nil, errors.New("Entity gone stale, newer version already available (OOL)")
+		return nil, errors.New("Entity has gone stale, newer version already available (OOL)")
 	}
 
 	version++
@@ -117,7 +127,11 @@ func (s *tablestore) Append(entity *store.Entity) (*store.Entity, error) {
 
 	entity.Version = version
 	etbl := s.getEntityTable()
-	eety := s.makeEntityTableEntity(etbl, entity)
+	eety, err := s.makeEntityTableEntity(etbl, entity)
+
+	if err != nil {
+		return nil, err
+	}
 
 	if err := eety.Insert(storage.EmptyPayload, nil); err != nil {
 		// so, here we have the problem, that the version is already incremented, but
@@ -148,16 +162,13 @@ func (s *tablestore) GetByVersion(id string, version int64) (*store.Entity, erro
 		return nil, err
 	}
 
-	version, err := strconv.ParseInt(ety.RowKey, 10, 64)
-	if err != nil {
+	result := &store.Entity{}
+
+	if err := json.Unmarshal(ety.Properties["data"].([]byte), result); err != nil {
 		return nil, err
 	}
 
-	return &store.Entity{
-		ID:      id,
-		Version: version,
-		Data:    ety.Properties["data"].([]byte),
-	}, nil
+	return result, nil
 }
 
 func (s *tablestore) makeVersionTableEntity(table *storage.Table, entity *store.Entity) *storage.Entity {
@@ -170,14 +181,18 @@ func (s *tablestore) makeVersionTableEntity(table *storage.Table, entity *store.
 	return e
 }
 
-func (s *tablestore) makeEntityTableEntity(table *storage.Table, entity *store.Entity) *storage.Entity {
+func (s *tablestore) makeEntityTableEntity(table *storage.Table, entity *store.Entity) (*storage.Entity, error) {
+	data, err := json.Marshal(entity)
+	if err != nil {
+		return nil, err
+	}
 	props := map[string]interface{}{
-		"data": entity.Data,
+		"data": data,
 	}
 
 	e := table.GetEntityReference(entity.ID, fmt.Sprintf("%v", entity.Version))
 	e.Properties = props
-	return e
+	return e, nil
 }
 
 func (s *tablestore) getVersionTable() *storage.Table {

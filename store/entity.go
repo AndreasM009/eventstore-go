@@ -4,5 +4,5 @@ package store
 type Entity struct {
 	ID      string
 	Version int64
-	Data    []byte
+	Data    interface{}
 }
