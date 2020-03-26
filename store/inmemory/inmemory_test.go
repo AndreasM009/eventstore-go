@@ -7,9 +7,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var testMetadata = store.Metadata{
+	Properties: make(map[string]string),
+}
+
 func TestAdd(t *testing.T) {
 	s := NewStore()
-	err := s.Init()
+	err := s.Init(testMetadata)
 	assert.Nil(t, err)
 
 	ety := &store.Entity{
@@ -31,7 +35,7 @@ func TestAdd(t *testing.T) {
 
 func TestAppend(t *testing.T) {
 	s := NewStore()
-	err := s.Init()
+	err := s.Init(testMetadata)
 	assert.Nil(t, err)
 
 	ety := &store.Entity{
@@ -62,7 +66,7 @@ func TestAppend(t *testing.T) {
 
 func TestAppendMissingEntity(t *testing.T) {
 	s := NewStore()
-	err := s.Init()
+	err := s.Init(testMetadata)
 	assert.Nil(t, err)
 
 	ety := &store.Entity{
@@ -79,7 +83,7 @@ func TestAppendMissingEntity(t *testing.T) {
 
 func TestGetVersionNumber(t *testing.T) {
 	s := NewStore()
-	err := s.Init()
+	err := s.Init(testMetadata)
 	assert.Nil(t, err)
 
 	ety := &store.Entity{
@@ -108,7 +112,7 @@ func TestGetVersionNumber(t *testing.T) {
 
 func TestGetVersionNumberMissingEntity(t *testing.T) {
 	s := NewStore()
-	err := s.Init()
+	err := s.Init(testMetadata)
 	assert.Nil(t, err)
 
 	ety := &store.Entity{
@@ -125,7 +129,7 @@ func TestGetVersionNumberMissingEntity(t *testing.T) {
 
 func TestGetByVersion(t *testing.T) {
 	s := NewStore()
-	err := s.Init()
+	err := s.Init(testMetadata)
 	assert.Nil(t, err)
 
 	ety := &store.Entity{
@@ -169,7 +173,7 @@ func TestGetByVersion(t *testing.T) {
 
 func TestGetByVerisonMissingEntity(t *testing.T) {
 	s := NewStore()
-	err := s.Init()
+	err := s.Init(testMetadata)
 	assert.Nil(t, err)
 
 	res, err := s.GetByVersion("1", 1)
@@ -179,7 +183,7 @@ func TestGetByVerisonMissingEntity(t *testing.T) {
 
 func TestGetByVersionMissingVersion(t *testing.T) {
 	s := NewStore()
-	err := s.Init()
+	err := s.Init(testMetadata)
 	assert.Nil(t, err)
 
 	ety := &store.Entity{

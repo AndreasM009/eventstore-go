@@ -12,6 +12,9 @@ import (
 const (
 	entityTableName        = "eventstoreentities"
 	entityVersionTableName = "eventstoreversion"
+	storageAccountName     = "storageAccountName"
+	storageAccountKey      = "storageAccountKey"
+	tableNameSuffix        = "tableNameSuffix"
 )
 
 type (
@@ -21,20 +24,40 @@ type (
 		client                 storage.Client
 		entityTableName        string
 		entityVersionTableName string
+		tableNameSuffix        string
 	}
 )
 
 // NewStore creates a new Azure Table Storage based event store
-func NewStore(storageAccount, storageAccountKey, tableSuffix string) store.EventStore {
-	return &tablestore{
-		storageAccount:         storageAccount,
-		storageAccountKey:      storageAccountKey,
-		entityTableName:        fmt.Sprintf("%s%s", entityTableName, tableSuffix),
-		entityVersionTableName: fmt.Sprintf("%s%s", entityVersionTableName, tableSuffix),
-	}
+func NewStore() store.EventStore {
+	return &tablestore{}
 }
 
-func (s *tablestore) Init() error {
+func (s *tablestore) Init(metadata store.Metadata) error {
+	var sa string
+	var sk string
+
+	sa, ok := metadata.Properties[storageAccountName]
+	if !ok || sa == "" {
+		return errors.New("azure tablestorage: storage account name is missing")
+	}
+
+	s.storageAccount = sa
+
+	sk, ok = metadata.Properties[storageAccountKey]
+	if !ok || sk == "" {
+		return errors.New("azure tablestorage: storage account key is missing")
+	}
+
+	s.storageAccountKey = sk
+
+	if sfx, ok := metadata.Properties[tableNameSuffix]; ok && sfx != "" {
+		s.tableNameSuffix = sfx
+	}
+
+	s.entityTableName = fmt.Sprintf("%s%s", entityTableName, s.tableNameSuffix)
+	s.entityVersionTableName = fmt.Sprintf("%s%s", entityVersionTableName, s.tableNameSuffix)
+
 	client, err := storage.NewBasicClient(s.storageAccount, s.storageAccountKey)
 	if err != nil {
 		return err

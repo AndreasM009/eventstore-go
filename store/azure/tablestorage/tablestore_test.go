@@ -12,11 +12,22 @@ import (
 var (
 	storageAccountFlag    *string
 	storageAccountKeyFlag *string
+	testMetadata          store.Metadata
+	emptyTestMetadata     store.Metadata
 )
 
 func init() {
 	storageAccountFlag = flag.String("storageaccount", "", "name of storage account to use")
 	storageAccountKeyFlag = flag.String("storageaccountkey", "", "key of storage account to use")
+	emptyTestMetadata.Properties = map[string]string{}
+}
+
+func initMetadata(suffix string) {
+	testMetadata.Properties = map[string]string{
+		storageAccountName: *storageAccountFlag,
+		storageAccountKey:  *storageAccountKeyFlag,
+		tableNameSuffix:    suffix,
+	}
 }
 
 func destroyTestData(t *testing.T, s *tablestore) {
@@ -30,24 +41,24 @@ func destroyTestData(t *testing.T, s *tablestore) {
 }
 
 func TestInit(t *testing.T) {
-	storageAccounName := *storageAccountFlag
-	storageAccountKey := *storageAccountKeyFlag
-
+	initMetadata("t1")
+	t.Logf("name:%s", testMetadata.Properties[storageAccountName])
 	// test empty constrings
-	s := NewStore("", "", "")
-	err := s.Init()
+	s := NewStore()
+	err := s.Init(emptyTestMetadata)
 	assert.NotNil(t, err)
 
 	// test init with connectionstrings
-	s = NewStore(storageAccounName, storageAccountKey, "t1")
-	err = s.Init()
+	s = NewStore()
+	err = s.Init(testMetadata)
 	assert.Nil(t, err)
 	destroyTestData(t, s.(*tablestore))
 }
 
 func TestAddEntity(t *testing.T) {
-	s := NewStore(*storageAccountFlag, *storageAccountKeyFlag, "t2")
-	err := s.Init()
+	initMetadata("t2")
+	s := NewStore()
+	err := s.Init(testMetadata)
 	assert.Nil(t, err)
 
 	defer destroyTestData(t, s.(*tablestore))
@@ -69,8 +80,9 @@ func TestAddEntity(t *testing.T) {
 }
 
 func TestAppend(t *testing.T) {
-	s := NewStore(*storageAccountFlag, *storageAccountKeyFlag, "t3")
-	err := s.Init()
+	initMetadata("t3")
+	s := NewStore()
+	err := s.Init(testMetadata)
 	assert.Nil(t, err)
 
 	defer destroyTestData(t, s.(*tablestore))
@@ -95,8 +107,9 @@ func TestAppend(t *testing.T) {
 }
 
 func TestAppendOldVersion(t *testing.T) {
-	s := NewStore(*storageAccountFlag, *storageAccountKeyFlag, "t4")
-	err := s.Init()
+	initMetadata("t4")
+	s := NewStore()
+	err := s.Init(testMetadata)
 	assert.Nil(t, err)
 
 	defer destroyTestData(t, s.(*tablestore))
@@ -131,8 +144,9 @@ func TestAppendOldVersion(t *testing.T) {
 }
 
 func TestGetLatestVersionNumber(t *testing.T) {
-	s := NewStore(*storageAccountFlag, *storageAccountKeyFlag, "t5")
-	err := s.Init()
+	initMetadata("t5")
+	s := NewStore()
+	err := s.Init(testMetadata)
 	assert.Nil(t, err)
 
 	defer destroyTestData(t, s.(*tablestore))
@@ -161,8 +175,9 @@ func TestGetLatestVersionNumber(t *testing.T) {
 }
 
 func TestGetLatestVersionNumberMissingEntity(t *testing.T) {
-	s := NewStore(*storageAccountFlag, *storageAccountKeyFlag, "t6")
-	err := s.Init()
+	initMetadata("t6")
+	s := NewStore()
+	err := s.Init(testMetadata)
 	assert.Nil(t, err)
 
 	defer destroyTestData(t, s.(*tablestore))
@@ -173,8 +188,9 @@ func TestGetLatestVersionNumberMissingEntity(t *testing.T) {
 }
 
 func TestGetByVersion(t *testing.T) {
-	s := NewStore(*storageAccountFlag, *storageAccountKeyFlag, "t7")
-	err := s.Init()
+	initMetadata("t7")
+	s := NewStore()
+	err := s.Init(testMetadata)
 	assert.Nil(t, err)
 
 	defer destroyTestData(t, s.(*tablestore))

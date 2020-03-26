@@ -18,7 +18,7 @@ func NewStore() store.EventStore {
 	return &inmemory{}
 }
 
-func (s *inmemory) Init() error {
+func (s *inmemory) Init(metadata store.Metadata) error {
 
 	s.versions = make(map[string]int64)
 	s.entities = make(map[string]map[int64]*store.Entity)

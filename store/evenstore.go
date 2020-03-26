@@ -2,7 +2,7 @@ package store
 
 // EventStore is the interface for an event store
 type EventStore interface {
-	Init() error
+	Init(metadata Metadata) error
 	Add(entity *Entity) (*Entity, error)
 	Append(entity *Entity) (*Entity, error)
 

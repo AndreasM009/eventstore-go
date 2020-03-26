@@ -49,8 +49,8 @@ ifeq ($(storageaccountkey),)
 	$(error arg storageaccountkey must be set: storageaccountkey="<key of account>")
 endif
 
-.PHONY: integrationtest
-integrationtest: check-integration-test-args
+.PHONY: integration-test
+integration-test: check-integration-test-args
 	go test ./store/azure/tablestorage -storageaccount="$(storageaccount)" -storageaccountkey="$(storageaccountkey)"
 
 ################################################################################
