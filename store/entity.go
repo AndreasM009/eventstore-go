@@ -2,7 +2,7 @@ package store
 
 // Entity represents a record in the EventStore
 type Entity struct {
-	ID      string
-	Version int64
-	Data    interface{}
+	ID      string      `json:"id"`
+	Version int64       `json:"version"`
+	Data    interface{} `json:"data"`
 }

@@ -41,8 +41,16 @@ test:
 ################################################################################
 # Target: integrationtest                                                      #
 ######################ä#########################################################
+check-integration-test-args:
+ifeq ($(storageaccount),)
+	$(error arg strorageaccount must be set: strorageaccount="<name of account>")
+endif
+ifeq ($(storageaccountkey),)
+	$(error arg storageaccountkey must be set: storageaccountkey="<key of account>")
+endif
+
 .PHONY: integrationtest
-integrationtest:
+integrationtest: check-integration-test-args
 	go test ./store/azure/tablestorage -storageaccount="$(storageaccount)" -storageaccountkey="$(storageaccountkey)"
 
 ################################################################################
