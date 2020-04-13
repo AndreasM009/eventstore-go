@@ -141,6 +141,11 @@ func TestAppendOldVersion(t *testing.T) {
 	ety, err = s.Append(etyOld)
 	assert.NotNil(t, err)
 	assert.Nil(t, ety)
+
+	evterr, ok := err.(store.EventStoreError)
+	assert.True(t, ok)
+	assert.NotNil(t, evterr)
+	assert.Equal(t, store.VersionConflict, evterr.ErrorType)
 }
 
 func TestGetLatestVersionNumber(t *testing.T) {

@@ -100,11 +100,19 @@ func (s *tablestore) Add(entity *store.Entity) (*store.Entity, error) {
 	}
 
 	if err := vety.Insert(storage.EmptyPayload, nil); err != nil {
-		return nil, err
+		return nil, store.EventStoreError{
+			Text:       "insert version entity failed",
+			ErrorType:  store.InternalError,
+			InnerError: err,
+		}
 	}
 
 	if err := eety.Insert(storage.EmptyPayload, nil); err != nil {
-		return nil, err
+		return nil, store.EventStoreError{
+			Text:       "insert entity failed",
+			ErrorType:  store.InternalError,
+			InnerError: err,
+		}
 	}
 
 	return entity, nil
@@ -118,19 +126,31 @@ func (s *tablestore) Append(entity *store.Entity) (*store.Entity, error) {
 	// load version of entity, increment it and try to save it.
 	// load full metadata, to check etag in merge
 	if err := vety.Get(10, storage.FullMetadata, nil); err != nil {
-		return nil, err
+		return nil, store.EventStoreError{
+			Text:       "faild to load version entity",
+			ErrorType:  store.EntityNotFound,
+			InnerError: err,
+		}
 	}
 
 	version, ok := vety.Properties["version"].(int64)
 	if !ok {
-		return nil, errors.New("Invalid type assertion for type version")
+		return nil, store.EventStoreError{
+			Text:       "invalid type assertion for type version",
+			ErrorType:  store.InternalError,
+			InnerError: nil,
+		}
 	}
 
 	// check if we have the current verion of the entity or not
 	if entity.Version != version {
 		// there is a newer version already stored, as we do OOL (Optimistic Offline Lock)
 		// we return an error here
-		return nil, errors.New("Entity has gone stale, newer version already available (OOL)")
+		return nil, store.EventStoreError{
+			Text:       "entity has gone stale, a newer version already exists",
+			ErrorType:  store.VersionConflict,
+			InnerError: nil,
+		}
 	}
 
 	version++
@@ -139,7 +159,11 @@ func (s *tablestore) Append(entity *store.Entity) (*store.Entity, error) {
 	if err := vety.Update(false, nil); err != nil {
 		// if we are here, the entity was updated form another user task, etc.
 		// at the moment we just return an error as we do an OOL (Optimistic Offline Lock)
-		return nil, err
+		return nil, store.EventStoreError{
+			Text:       "entity has gone stale, a newer version already exists",
+			ErrorType:  store.VersionConflict,
+			InnerError: err,
+		}
 	}
 
 	entity.Version = version
@@ -153,7 +177,11 @@ func (s *tablestore) Append(entity *store.Entity) (*store.Entity, error) {
 	if err := eety.Insert(storage.EmptyPayload, nil); err != nil {
 		// so, here we have the problem, that the version is already incremented, but
 		// the update of the entity failed!! Todo :-)
-		return nil, err
+		return nil, store.EventStoreError{
+			Text:       "failed to append new entity version",
+			ErrorType:  store.InternalError,
+			InnerError: err,
+		}
 	}
 
 	return entity, nil
@@ -164,7 +192,11 @@ func (s *tablestore) GetLatestVersionNumber(id string) (int64, error) {
 	vety := vtbl.GetEntityReference(id, id)
 
 	if err := vety.Get(10, storage.FullMetadata, nil); err != nil {
-		return int64(0), err
+		return int64(0), store.EventStoreError{
+			Text:       "failed to load version of entity",
+			ErrorType:  store.EntityNotFound,
+			InnerError: err,
+		}
 	}
 
 	version := vety.Properties["version"].(int64)
@@ -176,13 +208,21 @@ func (s *tablestore) GetByVersion(id string, version int64) (*store.Entity, erro
 	ety := tbl.GetEntityReference(id, fmt.Sprintf("%v", version))
 
 	if err := ety.Get(10, storage.FullMetadata, nil); err != nil {
-		return nil, err
+		return nil, store.EventStoreError{
+			Text:       "failed to load version of entity",
+			ErrorType:  store.EntityNotFound,
+			InnerError: err,
+		}
 	}
 
 	result := &store.Entity{}
 
 	if err := json.Unmarshal(ety.Properties["data"].([]byte), result); err != nil {
-		return nil, err
+		return nil, store.EventStoreError{
+			Text:       "failed to deserialize entity",
+			ErrorType:  store.SerializationFailed,
+			InnerError: err,
+		}
 	}
 
 	return result, nil
@@ -201,7 +241,11 @@ func (s *tablestore) makeVersionTableEntity(table *storage.Table, entity *store.
 func (s *tablestore) makeEntityTableEntity(table *storage.Table, entity *store.Entity) (*storage.Entity, error) {
 	data, err := json.Marshal(entity)
 	if err != nil {
-		return nil, err
+		return nil, store.EventStoreError{
+			Text:       "faild to serialize entity",
+			ErrorType:  store.SerializationFailed,
+			InnerError: err,
+		}
 	}
 	props := map[string]interface{}{
 		"data": data,
