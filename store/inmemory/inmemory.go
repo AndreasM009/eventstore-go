@@ -41,7 +41,7 @@ func (s *inmemory) Add(entity *store.Entity) (*store.Entity, error) {
 	return entity, nil
 }
 
-func (s *inmemory) Append(entity *store.Entity) (*store.Entity, error) {
+func (s *inmemory) Append(entity *store.Entity, concurrency store.ConcurrencyControl) (*store.Entity, error) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
@@ -91,6 +91,10 @@ func (s *inmemory) GetByVersion(id string, version int64) (*store.Entity, error)
 	}
 
 	return s.clone(entity), nil
+}
+
+func (s *inmemory) GetByVersionRange(id string, startVersion, endVersion int64) ([]store.Entity, error) {
+	return nil, nil
 }
 
 func (s *inmemory) clone(entity *store.Entity) *store.Entity {

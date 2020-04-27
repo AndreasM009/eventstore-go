@@ -100,7 +100,7 @@ func TestAppend(t *testing.T) {
 
 	ety2.Data = "Hello EventStore"
 
-	ety3, err := s.Append(ety2)
+	ety3, err := s.Append(ety2, store.Optimistic)
 	assert.Nil(t, err)
 	assert.NotNil(t, ety3)
 	assert.Equal(t, int64(2), ety3.Version)
@@ -127,7 +127,7 @@ func TestAppendOldVersion(t *testing.T) {
 
 	ety.Data = "Hello EventStore"
 
-	ety, err = s.Append(ety)
+	ety, err = s.Append(ety, store.Optimistic)
 	assert.Nil(t, err)
 	assert.NotNil(t, ety)
 	assert.Equal(t, int64(2), ety.Version)
@@ -138,7 +138,7 @@ func TestAppendOldVersion(t *testing.T) {
 		Version: 1,
 	}
 
-	ety, err = s.Append(etyOld)
+	ety, err = s.Append(etyOld, store.Optimistic)
 	assert.NotNil(t, err)
 	assert.Nil(t, ety)
 
@@ -169,7 +169,7 @@ func TestGetLatestVersionNumber(t *testing.T) {
 
 	ety.Data = "Hello EventStore"
 
-	ety, err = s.Append(ety)
+	ety, err = s.Append(ety, store.Optimistic)
 	assert.Nil(t, err)
 	assert.NotNil(t, ety)
 	assert.Equal(t, int64(2), ety.Version)
@@ -218,7 +218,7 @@ func TestGetByVersion(t *testing.T) {
 
 	ety.Data = "Hello EventStore"
 
-	ety, err = s.Append(ety)
+	ety, err = s.Append(ety, store.Optimistic)
 	assert.Nil(t, err)
 	assert.NotNil(t, ety)
 	assert.Equal(t, int64(2), ety.Version)
@@ -227,4 +227,66 @@ func TestGetByVersion(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, res)
 	assert.Equal(t, "Hello EventStore", res.Data.(string))
+}
+
+func TestGetByVersionRange(t *testing.T) {
+	initMetadata("t8")
+	s := NewStore()
+	err := s.Init(testMetadata)
+	assert.Nil(t, err)
+
+	defer destroyTestData(t, s.(*tablestore))
+
+	ety := &store.Entity{
+		ID:   "12345",
+		Data: "1",
+	}
+
+	ety, err = s.Add(ety)
+	assert.Nil(t, err)
+
+	ety.Data = "2"
+	ety, err = s.Append(ety, store.Optimistic)
+	assert.Nil(t, err)
+
+	ety.Data = "3"
+	ety, err = s.Append(ety, store.Optimistic)
+	assert.Nil(t, err)
+
+	entities, err := s.GetByVersionRange(ety.ID, 1, 3)
+	assert.Nil(t, err)
+	assert.Equal(t, 3, len(entities))
+}
+
+func TestConcurrencyNone(t *testing.T) {
+	initMetadata("t9")
+	s := NewStore()
+	err := s.Init(testMetadata)
+	assert.Nil(t, err)
+
+	defer destroyTestData(t, s.(*tablestore))
+
+	ety := &store.Entity{
+		ID:   "1234",
+		Data: "Hello Wolrd",
+	}
+
+	_, err = s.Add(ety)
+	assert.Nil(t, err)
+
+	ety = &store.Entity{
+		ID:   "1234",
+		Data: "Hello new Version",
+	}
+
+	ety, err = s.Append(ety, store.None)
+	assert.Nil(t, err)
+	assert.Equal(t, 2, ety.Version)
+
+	ety.Data = "Hello"
+	ety.Version = 0
+
+	ety, err = s.Append(ety, store.None)
+	assert.Nil(t, err)
+	assert.Equal(t, 3, ety.Version)
 }

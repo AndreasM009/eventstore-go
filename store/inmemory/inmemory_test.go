@@ -50,7 +50,7 @@ func TestAppend(t *testing.T) {
 	assert.NotNil(t, res)
 
 	ety.Data = "Hello World!"
-	res, err = s.Append(ety)
+	res, err = s.Append(ety, store.Optimistic)
 
 	assert.Nil(t, err)
 	assert.NotNil(t, res)
@@ -58,7 +58,7 @@ func TestAppend(t *testing.T) {
 
 	res.Version = 1
 
-	res, err = s.Append(res)
+	res, err = s.Append(res, store.Optimistic)
 
 	assert.NotNil(t, err)
 	assert.Nil(t, res)
@@ -75,7 +75,7 @@ func TestAppendMissingEntity(t *testing.T) {
 		Data:    "Hello World",
 	}
 
-	res, err := s.Append(ety)
+	res, err := s.Append(ety, store.Optimistic)
 
 	assert.NotNil(t, err)
 	assert.Nil(t, res)
@@ -101,7 +101,7 @@ func TestGetVersionNumber(t *testing.T) {
 	assert.Equal(t, int64(1), version)
 
 	ety.Data = "Hello World!"
-	e, err = s.Append(ety)
+	e, err = s.Append(ety, store.Optimistic)
 	assert.Nil(t, err)
 	assert.NotNil(t, e)
 
@@ -156,7 +156,7 @@ func TestGetByVersion(t *testing.T) {
 		Data:    "Hello World!",
 	}
 
-	e, err = s.Append(ety2)
+	e, err = s.Append(ety2, store.Optimistic)
 	assert.Nil(t, err)
 	assert.NotNil(t, e)
 

@@ -118,52 +118,11 @@ func (s *tablestore) Add(entity *store.Entity) (*store.Entity, error) {
 	return entity, nil
 }
 
-func (s *tablestore) Append(entity *store.Entity) (*store.Entity, error) {
+func (s *tablestore) Append(entity *store.Entity, concurrency store.ConcurrencyControl) (*store.Entity, error) {
 
-	vtbl := s.getVersionTable()
-	vety := vtbl.GetEntityReference(entity.ID, entity.ID)
-
-	// load version of entity, increment it and try to save it.
-	// load full metadata, to check etag in merge
-	if err := vety.Get(10, storage.FullMetadata, nil); err != nil {
-		return nil, store.EventStoreError{
-			Text:       "faild to load version entity",
-			ErrorType:  store.EntityNotFound,
-			InnerError: err,
-		}
-	}
-
-	version, ok := vety.Properties["version"].(int64)
-	if !ok {
-		return nil, store.EventStoreError{
-			Text:       "invalid type assertion for type version",
-			ErrorType:  store.InternalError,
-			InnerError: nil,
-		}
-	}
-
-	// check if we have the current verion of the entity or not
-	if entity.Version != version {
-		// there is a newer version already stored, as we do OOL (Optimistic Offline Lock)
-		// we return an error here
-		return nil, store.EventStoreError{
-			Text:       "entity has gone stale, a newer version already exists",
-			ErrorType:  store.VersionConflict,
-			InnerError: nil,
-		}
-	}
-
-	version++
-	vety.Properties["version"] = version
-
-	if err := vety.Update(false, nil); err != nil {
-		// if we are here, the entity was updated form another user task, etc.
-		// at the moment we just return an error as we do an OOL (Optimistic Offline Lock)
-		return nil, store.EventStoreError{
-			Text:       "entity has gone stale, a newer version already exists",
-			ErrorType:  store.VersionConflict,
-			InnerError: err,
-		}
+	version, err := s.getNextVersionNumber(entity, concurrency)
+	if err != nil {
+		return nil, err
 	}
 
 	entity.Version = version
@@ -185,6 +144,53 @@ func (s *tablestore) Append(entity *store.Entity) (*store.Entity, error) {
 	}
 
 	return entity, nil
+}
+
+func (s *tablestore) getNextVersionNumber(entity *store.Entity, concurrency store.ConcurrencyControl) (int64, error) {
+	for {
+		vtbl := s.getVersionTable()
+		vety := vtbl.GetEntityReference(entity.ID, entity.ID)
+
+		// load version of entity, increment it and try to save it.
+		// load full metadata, to check etag in merge
+		if err := vety.Get(10, storage.FullMetadata, nil); err != nil {
+			return 0, store.EventStoreError{
+				Text:       "faild to load version entity",
+				ErrorType:  store.EntityNotFound,
+				InnerError: err,
+			}
+		}
+
+		version, ok := vety.Properties["version"].(int64)
+		if !ok {
+			return 0, store.EventStoreError{
+				Text:       "invalid type assertion for type version",
+				ErrorType:  store.InternalError,
+				InnerError: nil,
+			}
+		}
+
+		// Optimistic Concurrency Control enabled?
+		// check if we have the current verion of the entity or not
+		if concurrency == store.Optimistic && entity.Version != version {
+			// there is a newer version already stored, as we do OOL (Optimistic Offline Lock)
+			// we return an error here
+			return 0, store.EventStoreError{
+				Text:       "entity has gone stale, a newer version already exists",
+				ErrorType:  store.VersionConflict,
+				InnerError: nil,
+			}
+		}
+
+		version++
+		vety.Properties["version"] = version
+
+		if err := vety.Update(false, nil); err == nil {
+			return version, nil
+		}
+
+		// try it again
+	}
 }
 
 func (s *tablestore) GetLatestVersionNumber(id string) (int64, error) {
@@ -228,6 +234,36 @@ func (s *tablestore) GetByVersion(id string, version int64) (*store.Entity, erro
 	return result, nil
 }
 
+func (s *tablestore) GetByVersionRange(id string, startVersion, endVersion int64) ([]store.Entity, error) {
+	tbl := s.getEntityTable()
+	opts := storage.QueryOptions{
+		Filter: fmt.Sprintf("(version ge %v) and (version le %v)", startVersion, endVersion),
+	}
+
+	result, err := tbl.QueryEntities(10, storage.FullMetadata, &opts)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(result.Entities) == 0 {
+		return []store.Entity{}, nil
+	}
+
+	resultEntities := make([]store.Entity, len(result.Entities))
+
+	for i, e := range result.Entities {
+		if err := json.Unmarshal(e.Properties["data"].([]byte), &resultEntities[i]); err != nil {
+			return nil, store.EventStoreError{
+				Text:       "failed to deserialize entity",
+				ErrorType:  store.SerializationFailed,
+				InnerError: err,
+			}
+		}
+	}
+
+	return resultEntities, nil
+}
+
 func (s *tablestore) makeVersionTableEntity(table *storage.Table, entity *store.Entity) *storage.Entity {
 	props := map[string]interface{}{
 		"version": entity.Version,
@@ -248,7 +284,8 @@ func (s *tablestore) makeEntityTableEntity(table *storage.Table, entity *store.E
 		}
 	}
 	props := map[string]interface{}{
-		"data": data,
+		"data":    data,
+		"version": entity.Version,
 	}
 
 	e := table.GetEntityReference(entity.ID, fmt.Sprintf("%v", entity.Version))
