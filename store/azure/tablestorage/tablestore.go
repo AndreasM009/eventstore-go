@@ -284,8 +284,9 @@ func (s *tablestore) makeEntityTableEntity(table *storage.Table, entity *store.E
 		}
 	}
 	props := map[string]interface{}{
-		"data":    data,
-		"version": entity.Version,
+		"data":     data,
+		"version":  entity.Version,
+		"metadata": entity.Metadata,
 	}
 
 	e := table.GetEntityReference(entity.ID, fmt.Sprintf("%v", entity.Version))

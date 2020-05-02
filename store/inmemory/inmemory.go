@@ -99,8 +99,9 @@ func (s *inmemory) GetByVersionRange(id string, startVersion, endVersion int64) 
 
 func (s *inmemory) clone(entity *store.Entity) *store.Entity {
 	return &store.Entity{
-		ID:      entity.ID,
-		Version: entity.Version,
-		Data:    entity.Data,
+		ID:       entity.ID,
+		Version:  entity.Version,
+		Data:     entity.Data,
+		Metadata: entity.Metadata,
 	}
 }

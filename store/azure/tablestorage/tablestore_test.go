@@ -64,8 +64,9 @@ func TestAddEntity(t *testing.T) {
 	defer destroyTestData(t, s.(*tablestore))
 
 	ety := &store.Entity{
-		ID:   "1234",
-		Data: "Hello Wolrd",
+		ID:       "1234",
+		Data:     "Hello Wolrd",
+		Metadata: "Metadata",
 	}
 
 	ety2, err := s.Add(ety)
@@ -88,8 +89,9 @@ func TestAppend(t *testing.T) {
 	defer destroyTestData(t, s.(*tablestore))
 
 	ety := &store.Entity{
-		ID:   "1234",
-		Data: "Hello Wolrd",
+		ID:       "1234",
+		Data:     "Hello Wolrd",
+		Metadata: "Metadata",
 	}
 
 	ety2, err := s.Add(ety)
@@ -115,8 +117,9 @@ func TestAppendOldVersion(t *testing.T) {
 	defer destroyTestData(t, s.(*tablestore))
 
 	ety := &store.Entity{
-		ID:   "1234",
-		Data: "Hello Wolrd",
+		ID:       "1234",
+		Data:     "Hello Wolrd",
+		Metadata: "Metadata",
 	}
 
 	ety, err = s.Add(ety)
@@ -133,9 +136,10 @@ func TestAppendOldVersion(t *testing.T) {
 	assert.Equal(t, int64(2), ety.Version)
 
 	etyOld := &store.Entity{
-		ID:      "1234",
-		Data:    "Hello",
-		Version: 1,
+		ID:       "1234",
+		Data:     "Hello",
+		Metadata: "Metadata",
+		Version:  1,
 	}
 
 	ety, err = s.Append(etyOld, store.Optimistic)
@@ -157,8 +161,9 @@ func TestGetLatestVersionNumber(t *testing.T) {
 	defer destroyTestData(t, s.(*tablestore))
 
 	ety := &store.Entity{
-		ID:   "1234",
-		Data: "Hello Wolrd",
+		ID:       "1234",
+		Data:     "Hello Wolrd",
+		Metadata: "Metadata",
 	}
 
 	ety, err = s.Add(ety)
@@ -201,8 +206,9 @@ func TestGetByVersion(t *testing.T) {
 	defer destroyTestData(t, s.(*tablestore))
 
 	ety := &store.Entity{
-		ID:   "1234",
-		Data: "Hello World",
+		ID:       "1234",
+		Data:     "Hello World",
+		Metadata: "Metadata",
 	}
 
 	ety, err = s.Add(ety)
@@ -238,8 +244,9 @@ func TestGetByVersionRange(t *testing.T) {
 	defer destroyTestData(t, s.(*tablestore))
 
 	ety := &store.Entity{
-		ID:   "12345",
-		Data: "1",
+		ID:       "12345",
+		Data:     "1",
+		Metadata: "Metadata",
 	}
 
 	ety, err = s.Add(ety)
@@ -267,26 +274,28 @@ func TestConcurrencyNone(t *testing.T) {
 	defer destroyTestData(t, s.(*tablestore))
 
 	ety := &store.Entity{
-		ID:   "1234",
-		Data: "Hello Wolrd",
+		ID:       "1234",
+		Data:     "Hello Wolrd",
+		Metadata: "Metadata",
 	}
 
 	_, err = s.Add(ety)
 	assert.Nil(t, err)
 
 	ety = &store.Entity{
-		ID:   "1234",
-		Data: "Hello new Version",
+		ID:       "1234",
+		Data:     "Hello new Version",
+		Metadata: "Metadata",
 	}
 
 	ety, err = s.Append(ety, store.None)
 	assert.Nil(t, err)
-	assert.Equal(t, 2, ety.Version)
+	assert.Equal(t, int64(2), ety.Version)
 
 	ety.Data = "Hello"
 	ety.Version = 0
 
 	ety, err = s.Append(ety, store.None)
 	assert.Nil(t, err)
-	assert.Equal(t, 3, ety.Version)
+	assert.Equal(t, int64(3), ety.Version)
 }
