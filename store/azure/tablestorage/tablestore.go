@@ -237,7 +237,7 @@ func (s *tablestore) GetByVersion(id string, version int64) (*store.Entity, erro
 func (s *tablestore) GetByVersionRange(id string, startVersion, endVersion int64) ([]store.Entity, error) {
 	tbl := s.getEntityTable()
 	opts := storage.QueryOptions{
-		Filter: fmt.Sprintf("(PartitionKey eq %s) (version ge %v) and (version le %v)", id, startVersion, endVersion),
+		Filter: fmt.Sprintf("(PartitionKey eq '%s') and (version ge %v) and (version le %v)", id, startVersion, endVersion),
 	}
 
 	result, err := tbl.QueryEntities(10, storage.FullMetadata, &opts)
