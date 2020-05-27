@@ -6,7 +6,7 @@ import "fmt"
 type ErrorType int
 
 const (
-	// SerializationFailed is returned when JSOn serialization fails
+	// SerializationFailed is returned when JSON serialization fails
 	SerializationFailed ErrorType = iota + 1
 	// EntityNotFound is returned when a requested entity was not found
 	EntityNotFound

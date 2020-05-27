@@ -245,7 +245,7 @@ func (s *tablestore) GetByVersionRange(id string, startVersion, endVersion int64
 		return nil, err
 	}
 
-	if len(result.Entities) == 0 {
+	if len(result.Entities) == 0 {	
 		return []store.Entity{}, nil
 	}
 

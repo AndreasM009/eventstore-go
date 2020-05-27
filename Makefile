@@ -39,9 +39,9 @@ test:
 	go test ./store/inmemory
 
 ################################################################################
-# Target: integrationtest                                                      #
+# Target: table store integrationtest                                          #
 ######################ä#########################################################
-check-integration-test-args:
+check-tablestore-integration-test-args:
 ifeq ($(storageaccount),)
 	$(error arg strorageaccount must be set: strorageaccount="<name of account>")
 endif
@@ -49,9 +49,30 @@ ifeq ($(storageaccountkey),)
 	$(error arg storageaccountkey must be set: storageaccountkey="<key of account>")
 endif
 
-.PHONY: integration-test
-integration-test: check-integration-test-args
+.PHONY: tablestore-integration-test
+tablestore-integration-test: check-tablestore-integration-test-args
 	go test ./store/azure/tablestorage -storageaccount="$(storageaccount)" -storageaccountkey="$(storageaccountkey)"
+
+################################################################################
+# Target: cosmosdb-integrationtest
+################################################################################
+check-cosmosdb-integration-test-args:
+ifeq ($(url),)
+	$(error arg url must be set)
+endif
+ifeq ($(masterKey),)
+	$(error arg masterKey must be set)
+endif
+ifeq ($(database),)
+	$(error arg database must be set)
+endif
+ifeq ($(container),)
+	$(error arg container must be set)
+endif
+
+.PHONY: cosmosdb-integration-test
+cosmosdb-integration-test: check-cosmosdb-integration-test-args
+	go test ./store/azure/cosmosdb -url="$(url)" -masterKey="$(masterKey)" -database="$(database)" -container="$(container)"
 
 ################################################################################
 # Target: lint                                                                 #
