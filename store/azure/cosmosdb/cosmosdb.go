@@ -233,7 +233,7 @@ func (c *cosmosdb) GetByVersionRange(id string, startVersion int64, endVersion i
 
 	cosmosEntities := []cosmosentity{}
 	_, err := c.client.QueryDocuments(c.container.Self, &documentdb.Query{
-		Query: "SELECT * FROM ROOT r WHERE r.entityId=@entityId and r.type=@type and r.version >= 1 and r.version <= 3",
+		Query: fmt.Sprintf("SELECT * FROM ROOT r WHERE r.entityId=@entityId and r.type=@type and r.version >= %d and r.version <= %d", startVersion, endVersion),
 		Parameters: []documentdb.Parameter{
 			{Name: "@entityId", Value: id},
 			{Name: "@type", Value: "entity"},
