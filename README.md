@@ -1,5 +1,5 @@
-# eventstore-go
-A simple Eventstore to store object change history.
+# eventstore-impl
+Event Store implementation library to provide different storage backends.
 
 Supported storage:
 - Azure Table Storage
