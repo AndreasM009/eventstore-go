@@ -10,21 +10,20 @@ import (
 )
 
 const (
-	entityTableName        = "eventstoreentities"
-	entityVersionTableName = "eventstoreversion"
-	storageAccountName     = "storageAccountName"
-	storageAccountKey      = "storageAccountKey"
-	tableNameSuffix        = "tableNameSuffix"
+	entityTableName     = "eventstoreentities"
+	storageAccountName  = "storageAccountName"
+	storageAccountKey   = "storageAccountKey"
+	tableNameSuffix     = "tableNameSuffix"
+	latestEntityVersion = "latestVersion"
 )
 
 type (
 	tablestore struct {
-		storageAccount         string
-		storageAccountKey      string
-		client                 storage.Client
-		entityTableName        string
-		entityVersionTableName string
-		tableNameSuffix        string
+		storageAccount    string
+		storageAccountKey string
+		client            storage.Client
+		entityTableName   string
+		tableNameSuffix   string
 	}
 )
 
@@ -56,7 +55,6 @@ func (s *tablestore) Init(metadata store.Metadata) error {
 	}
 
 	s.entityTableName = fmt.Sprintf("%s%s", entityTableName, s.tableNameSuffix)
-	s.entityVersionTableName = fmt.Sprintf("%s%s", entityVersionTableName, s.tableNameSuffix)
 
 	client, err := storage.NewBasicClient(s.storageAccount, s.storageAccountKey)
 	if err != nil {
@@ -75,39 +73,29 @@ func (s *tablestore) Init(metadata store.Metadata) error {
 		}
 	}
 
-	vtbl := tbls.GetTableReference(s.entityVersionTableName)
-
-	if err := vtbl.Get(10, storage.FullMetadata); err != nil {
-		if err := vtbl.Create(10, storage.EmptyPayload, nil); err != nil {
-			return err
-		}
-	}
-
 	return nil
 }
 
 func (s *tablestore) Add(entity *store.Entity) (*store.Entity, error) {
 	entity.Version = 1
 
-	vtbl := s.getVersionTable()
-	vety := s.makeVersionTableEntity(vtbl, entity)
-
 	etbl := s.getEntityTable()
+
+	vety := s.makeVersionTableEntity(etbl, entity)
 	eety, err := s.makeEntityTableEntity(etbl, entity)
 
 	if err != nil {
 		return nil, err
 	}
 
-	if err := vety.Insert(storage.EmptyPayload, nil); err != nil {
-		return nil, store.EventStoreError{
-			Text:       "insert version entity failed",
-			ErrorType:  store.InternalError,
-			InnerError: err,
-		}
-	}
+	batch := etbl.NewBatch()
 
-	if err := eety.Insert(storage.EmptyPayload, nil); err != nil {
+	batch.InsertEntity(vety)
+	batch.InsertEntity(eety)
+
+	err = batch.ExecuteBatch()
+
+	if err != nil {
 		return nil, store.EventStoreError{
 			Text:       "insert entity failed",
 			ErrorType:  store.InternalError,
@@ -119,42 +107,13 @@ func (s *tablestore) Add(entity *store.Entity) (*store.Entity, error) {
 }
 
 func (s *tablestore) Append(entity *store.Entity, concurrency store.ConcurrencyControl) (*store.Entity, error) {
-
-	version, err := s.getNextVersionNumber(entity, concurrency)
-	if err != nil {
-		return nil, err
-	}
-
-	entity.Version = version
 	etbl := s.getEntityTable()
-	eety, err := s.makeEntityTableEntity(etbl, entity)
+	vety := etbl.GetEntityReference(entity.ID, latestEntityVersion)
 
-	if err != nil {
-		return nil, err
-	}
-
-	if err := eety.Insert(storage.EmptyPayload, nil); err != nil {
-		// so, here we have the problem, that the version is already incremented, but
-		// the update of the entity failed!! Todo :-)
-		return nil, store.EventStoreError{
-			Text:       "failed to append new entity version",
-			ErrorType:  store.InternalError,
-			InnerError: err,
-		}
-	}
-
-	return entity, nil
-}
-
-func (s *tablestore) getNextVersionNumber(entity *store.Entity, concurrency store.ConcurrencyControl) (int64, error) {
 	for {
-		vtbl := s.getVersionTable()
-		vety := vtbl.GetEntityReference(entity.ID, entity.ID)
-
-		// load version of entity, increment it and try to save it.
-		// load full metadata, to check etag in merge
+		// load version of entity and increment version.
 		if err := vety.Get(10, storage.FullMetadata, nil); err != nil {
-			return 0, store.EventStoreError{
+			return nil, store.EventStoreError{
 				Text:       "faild to load version entity",
 				ErrorType:  store.EntityNotFound,
 				InnerError: err,
@@ -163,7 +122,7 @@ func (s *tablestore) getNextVersionNumber(entity *store.Entity, concurrency stor
 
 		version, ok := vety.Properties["version"].(int64)
 		if !ok {
-			return 0, store.EventStoreError{
+			return nil, store.EventStoreError{
 				Text:       "invalid type assertion for type version",
 				ErrorType:  store.InternalError,
 				InnerError: nil,
@@ -175,7 +134,7 @@ func (s *tablestore) getNextVersionNumber(entity *store.Entity, concurrency stor
 		if concurrency == store.Optimistic && entity.Version != version {
 			// there is a newer version already stored, as we do OOL (Optimistic Offline Lock)
 			// we return an error here
-			return 0, store.EventStoreError{
+			return nil, store.EventStoreError{
 				Text:       "entity has gone stale, a newer version already exists",
 				ErrorType:  store.VersionConflict,
 				InnerError: nil,
@@ -185,17 +144,29 @@ func (s *tablestore) getNextVersionNumber(entity *store.Entity, concurrency stor
 		version++
 		vety.Properties["version"] = version
 
-		if err := vety.Update(false, nil); err == nil {
-			return version, nil
+		entity.Version = version
+		eety, err := s.makeEntityTableEntity(etbl, entity)
+
+		if err != nil {
+			return nil, err
 		}
 
+		batch := etbl.NewBatch()
+
+		batch.InsertEntity(eety)
+		batch.ReplaceEntity(vety)
+
+		err = batch.ExecuteBatch()
+		if err == nil {
+			return entity, nil
+		}
 		// try it again
 	}
 }
 
 func (s *tablestore) GetLatestVersionNumber(id string) (int64, error) {
-	vtbl := s.getVersionTable()
-	vety := vtbl.GetEntityReference(id, id)
+	vtbl := s.getEntityTable()
+	vety := vtbl.GetEntityReference(id, latestEntityVersion)
 
 	if err := vety.Get(10, storage.FullMetadata, nil); err != nil {
 		return int64(0), store.EventStoreError{
@@ -237,7 +208,7 @@ func (s *tablestore) GetByVersion(id string, version int64) (*store.Entity, erro
 func (s *tablestore) GetByVersionRange(id string, startVersion, endVersion int64) ([]store.Entity, error) {
 	tbl := s.getEntityTable()
 	opts := storage.QueryOptions{
-		Filter: fmt.Sprintf("(PartitionKey eq '%s') and (version ge %v) and (version le %v)", id, startVersion, endVersion),
+		Filter: fmt.Sprintf("(PartitionKey eq '%s') and (RowKey ne '%s') and (version ge %v) and (version le %v)", id, latestEntityVersion, startVersion, endVersion),
 	}
 
 	result, err := tbl.QueryEntities(10, storage.FullMetadata, &opts)
@@ -245,7 +216,7 @@ func (s *tablestore) GetByVersionRange(id string, startVersion, endVersion int64
 		return nil, err
 	}
 
-	if len(result.Entities) == 0 {	
+	if len(result.Entities) == 0 {
 		return []store.Entity{}, nil
 	}
 
@@ -269,7 +240,7 @@ func (s *tablestore) makeVersionTableEntity(table *storage.Table, entity *store.
 		"version": entity.Version,
 	}
 
-	e := table.GetEntityReference(entity.ID, entity.ID)
+	e := table.GetEntityReference(entity.ID, latestEntityVersion)
 	e.Properties = props
 	return e
 }
@@ -292,11 +263,6 @@ func (s *tablestore) makeEntityTableEntity(table *storage.Table, entity *store.E
 	e := table.GetEntityReference(entity.ID, fmt.Sprintf("%v", entity.Version))
 	e.Properties = props
 	return e, nil
-}
-
-func (s *tablestore) getVersionTable() *storage.Table {
-	svc := s.client.GetTableService()
-	return svc.GetTableReference(s.entityVersionTableName)
 }
 
 func (s *tablestore) getEntityTable() *storage.Table {

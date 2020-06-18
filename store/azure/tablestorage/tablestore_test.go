@@ -32,11 +32,8 @@ func initMetadata(suffix string) {
 
 func destroyTestData(t *testing.T, s *tablestore) {
 	tsvc := s.client.GetTableService()
-	vtbl := tsvc.GetTableReference(s.entityVersionTableName)
-	err := vtbl.Delete(30, nil)
-	assert.Nil(t, err)
 	etbl := tsvc.GetTableReference(s.entityTableName)
-	err = etbl.Delete(30, nil)
+	err := etbl.Delete(30, nil)
 	assert.Nil(t, err)
 }
 
