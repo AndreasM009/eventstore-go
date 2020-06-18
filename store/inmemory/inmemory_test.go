@@ -3,7 +3,7 @@ package inmemory
 import (
 	"testing"
 
-	"github.com/AndreasM009/eventstore-go/store"
+	"github.com/AndreasM009/eventstore-impl/store"
 	"github.com/stretchr/testify/assert"
 )
 

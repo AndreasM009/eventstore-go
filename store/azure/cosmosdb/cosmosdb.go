@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/AndreasM009/eventstore-go/store"
+	"github.com/AndreasM009/eventstore-impl/store"
 	"github.com/a8m/documentdb"
 )
 

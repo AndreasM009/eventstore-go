@@ -1,3 +1,5 @@
+github.com/AndreasM009/eventstore-go v0.0.0-20200618073707-b10d086fd0e8 h1:2VKv/5cNP179hO5OsRCLrqcCiWMKSGBdhI/FM6D4sxQ=
+github.com/AndreasM009/eventstore-go v0.0.0-20200618073707-b10d086fd0e8/go.mod h1:NKjRhainPLvTvv+jObqTEvjdNyF13Ec2KFMsaAdcZWg=
 github.com/AndreasM009/eventstore-service-go v0.0.0-20200326184501-caa83a35e61e h1:AQqUkjl5/TUSLM4OqHt1FnV+f2PUgUFVZqkP/GwVOhk=
 github.com/Azure/azure-sdk-for-go v0.2.0-beta h1:wYBqYNMWr0WL2lcEZi+dlK9n+N0wJ0Pjs4BKeOnDjfQ=
 github.com/Azure/azure-sdk-for-go v40.5.0+incompatible h1:CVQNKuUepSFBo6BW6gM1J9slPHLRcjn6vaw+j+causw=
